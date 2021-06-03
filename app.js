@@ -31,7 +31,7 @@ app.use(bodyParser.json());
 app.use('/api/auth', usersRoutes);
 app.use('/api/sauces', sauceRoutes);
 app.use('/images', express.static(path.join(__dirname, 'images')));
-
+app.get('/', (req, res) => res.send("HelloWorld!"))
 
 
 
