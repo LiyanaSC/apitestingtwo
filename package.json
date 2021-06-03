@@ -5,7 +5,7 @@
     "main": "server.js",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "start": "node server.js"
+        "start": "npx nodemon server.js"
     },
     "author": "",
     "license": "ISC",
@@ -17,7 +17,6 @@
         "express": "^4.17.1",
         "express-rate-limit": "^5.2.6",
         "express-validator": "^6.10.0",
-        "heroku": "^7.54.0",
         "json-mask": "^0.3.9",
         "jsonwebtoken": "^8.5.1",
         "mongo-mask": "^1.1.0",
