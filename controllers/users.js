@@ -1,160 +1,76 @@
-const jwt = require('jsonwebtoken');
-const models = require('../models')
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken')
+const User = require('../models/user');
+const passwordValidator = require('password-validator');
+const validator = require("email-validator");
+const CryptoJS = require("crypto-js");
+
+const schema = new passwordValidator();
+
+schema
+    .is().min(8)
+    .has().uppercase()
+    .has().lowercase()
+    .has().digits(1)
+    .has().not().spaces();
 
 
-
-
-exports.getUsers = (req, res, next) => {
-
-    const userId = req.params.id
-    if (userId == null) {
-        return res.status(400).json({ error: 'USER UNDEFINED' });
-    }
-    models.User.findOne({
-        attributes: ['firstname', 'lastname'],
-        where: { id: userId }
-    }).then(user => {
-        if (user) {
-            return res.status(201).json(user);
-        } else {
-            return res.status(400).json({ error: 'USER UNDEFINED' });
-        }
-    }).catch(err => {
-        return res.status(400).json({ error: 'USER not found' });
-
-    })
-}
-
-exports.updateUsers = (req, res, next) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const decodedToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET');
-    const userId = decodedToken.userId;
-    const isAdmin = decodedToken.isAdmin;
-    let firstname = req.body.firstname;
-    let lastname = req.body.lastname;
-
-
-
-    if (req.body.id < 1 ||
-        firstname == null ||
-        lastname == null
-
-    ) {
-        return res.status(400).json({ error: 'Bad request type' });
-    }
-    models.User.findOne({
-            attributes: ['firstname', 'lastname', 'id'],
-            where: { id: req.params.id }
-        })
-        .then(userFound => {
-            if (userFound) {
-                if (userId != req.params.id && isAdmin !== true) {
-                    return res.status(400).json({ error: 'permission denied' });
-                }
-                userFound.update({
-                    firstname: (firstname ? firstname : userFound.firstname),
-                    lastname: (lastname ? lastname : userFound.lastname),
-                }).then(userUpdate => {
-                    if (userUpdate) {
-                        return res.status(200).json({ message: 'update!' });
-                    } else {
-                        return res.status(404).json({ error: 'cannot update' });
-
-                    }
-                }).catch(err => {
-                    return res.status(404).json({ error: 'user not found' });
-                })
-
-            } else {
-                return res.status(404).json({ error: 'user not found' });
-
-            }
-        }).catch(err => {
-            return res.status(400).json({ error: 'unable to verify user' });
-
-        })
-
-}
-
-exports.deleteUsers = (req, res, next) => {
-    const token = req.headers.authorization.split(' ')[1];
-    const decodedToken = jwt.verify(token, 'RANDOM_TOKEN_SECRET');
-    const userId = decodedToken.userId;
-    const isAdmin = decodedToken.isAdmin;
-
-
-    if ((userId == null) ||
-        userId != req.params.id && isAdmin !== true) {
+exports.createUser = (req, res, next) => {
+    if (Object.keys(req.body).length != 2) {
+        return res.status(400).json({ error: 'bad request' });
+    } else if (schema.validate(req.body.password) == false) {
+        return res.status(400).json({ error: 'password insecure try again' });
+    } else if (validator.validate(req.body.email) == false) {
+        return res.status(400).json({ error: 'not an email' });
+    } else if (!req.body.email ||
+        !req.body.password) {
         return res.status(400).json({ error: 'permission denied' });
     }
-    models.User.findOne({
-            where: { id: req.params.id }
+
+    bcrypt.hash(req.body.password, 10)
+        .then(hash => {
+            const hashedMail = CryptoJS.SHA256(req.body.email)
+            const user = new User({
+                email: hashedMail,
+                password: hash
+            })
+
+            user.save()
+                .then(() => res.status(201).json({ message: 'nouvel(le) utilisateur/trice enregistré(e) !' }))
+                .catch(error => res.status(400).json({ error }));
         })
-        .then(userFound => {
-            console.log(userFound)
-            if (userFound) {
-                if (userId != userFound.id && isAdmin !== true) {
-                    return res.status(400).json({ error: 'permission denied for user' });
-                }
-
-                models.Article.findAll({
-                        where: { UserId: req.params.id }
-                    })
-                    .then(articles => {
-
-                        if (articles) {
-                            articles.forEach(article => {
-                                article.destroy()
-                            });
-
-                        } else {
-                            return res.status(404).json({ error: 'not found' });
-                        }
-
-                    })
-                    .catch(err => {
-                        return res.status(400).json({ error: 'unable to found article' });
-
-                    })
-
-                models.Comment.findAll({
-                        where: { UserId: req.params.id },
-
-                    })
-                    .then(Comments => {
-
-                        if (Comments) {
-                            Comments.forEach(comment => {
-                                comment.destroy()
-                            });
-
-                        } else {
-                            return res.status(404).json({ error: 'not found' });
-                        }
-                    })
-                    .catch(err => {
-                        return res.status(400).json({ error: 'unable to found comment' });
-
-                    })
-
-
-
-                userFound.destroy()
-                    .then(deletedUser => {
-                        if (deletedUser) {
-                            return res.status(200).json({ message: 'delete!' });
-                        } else {
-                            return res.status(404).json({ error: 'cannot delete' });
-
-                        }
-                    }).catch(err => {
-                        return res.status(404).json({ error: 'user not found' });
-                    })
-
-            }
-        }).catch(err => {
-            return res.status(400).json({ error: 'unable to verify user' });
-
-        })
-
+        .catch(error => res.status(500).json({ error }))
 }
+
+exports.logUser = (req, res, next) => {
+    if (Object.keys(req.body).length != 2) {
+        return res.status(400).json({ error: 'bad request' });
+    } else if (schema.validate(req.body.password) == false) {
+        return res.status(406).send(new Error('password insecure try again'));
+    } else if (validator.validate(req.body.email) == false) {
+        return res.status(406).send(new Error('not a email'));
+    }
+    const hashedMail = CryptoJS.SHA256(req.body.email).toString();
+    User.findOne({ email: hashedMail })
+        .then(user => {
+            if (user == undefined) {
+                res.status(401).send(new Error('permission denied'));
+
+            } else {
+                bcrypt.compare(req.body.password, user.password)
+                    .then(valid => {
+                        if (!valid) {
+                            return res.status(401).json({ error: 'mot de passe incorrect' });
+                        }
+                        res.status(200).json({
+                            userId: user._id,
+                            token: jwt.sign({ userId: user._id },
+                                'RANDOM_TOKEN_SECRET', { expiresIn: '3h' }
+                            )
+                        });
+                    })
+                    .catch(error => res.status(500).json({ error }));
+            }
+        })
+        .catch(error => res.status(500).json({ error }));
+};

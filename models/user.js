@@ -1,30 +1,11 @@
-'use strict';
-const {
-    Model
-} = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-    class User extends Model {
-        /**
-         * Helper method for defining associations.
-         * This method is not a part of Sequelize lifecycle.
-         * The `models/index` file will call this method automatically.
-         */
-        static associate(models) {
-            // define association here
-            models.User.hasMany(models.Comment);
-            models.User.hasMany(models.Article)
-        }
-    };
-    User.init({
-        email: DataTypes.STRING,
-        password: DataTypes.STRING,
-        lastname: DataTypes.STRING,
-        firstname: DataTypes.STRING,
-        admin: DataTypes.BOOLEAN
-    }, {
-        sequelize,
-        timestamps: false,
-        modelName: 'User',
-    });
-    return User;
-};
+const mongoose = require('mongoose');
+const oneMailOnly = require('mongoose-unique-validator');
+const encrypt = require('mongoose-encryption');
+
+const UserSchema = mongoose.Schema({
+    email: { type: String, required: true, unique: true },
+    password: { type: String, required: true },
+});
+
+UserSchema.plugin(oneMailOnly, encrypt, { excludeFromEncryption: ['password'] });
+module.exports = mongoose.model('User', UserSchema);
