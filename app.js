@@ -1,25 +1,33 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const mongoose = require('mongoose');
-const path = require('path');
+const mysql = require('mysql');
 
-const cameraRoutes = require('./routes/camera');
-const teddyRoutes = require('./routes/teddy');
-const furnitureRoutes = require('./routes/furniture');
+
+
+//const path = require('path');
+
+
+const authroutes = require('./routes/auth');
+const usersRoute = require('./routes/users');
+const articlesRoute = require('./routes/articles');
+
 
 const app = express();
 
 
 
-mongoose.connect(
-        'mongodb+srv://will:nAcmfCoHGDgzrCHG@cluster0-pme76.mongodb.net/test?retryWrites=true', { useNewUrlParser: true, useUnifiedTopology: true })
-    .then(() => {
-        console.log('Successfully connected to MongoDB Atlas!');
-    })
-    .catch((error) => {
-        console.log('Unable to connect to MongoDB Atlas!');
-        console.error(error);
-    });
+const pool = mysql.createPool({
+    connectionLimit: 10,
+    host: 'localhost',
+    user: 'student',
+    password: 'Study2021',
+    database: 'pagemania',
+    port: '3306'
+});
+
+pool.query(function() {
+    console.log('Connected to MySQL! Test result: ');
+});
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -28,15 +36,16 @@ app.use((req, res, next) => {
     next();
 });
 
-
-
-
-
-
 app.use(bodyParser.json());
 
-app.use('/api/cameras', cameraRoutes);
-app.use('/api/teddies', teddyRoutes);
-app.use('/api/furniture', furnitureRoutes);
+
+
+app.use('/api/auth', authroutes);
+app.use('/api/users', usersRoute);
+app.use('/api/articles', articlesRoute);
+/*app.use('/images', express.static(path.join(__dirname, 'images')));
+
+*/
+
 
 module.exports = app;
