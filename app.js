@@ -3,21 +3,23 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const path = require('path');
 
-const usersRoutes = require('./routes/users');
-const sauceRoutes = require('./routes/sauces');
+const cameraRoutes = require('./routes/camera');
+const teddyRoutes = require('./routes/teddy');
+const furnitureRoutes = require('./routes/furniture');
 
 const app = express();
 
 
 
-mongoose.connect('mongodb+srv://utilisateur:enter@cluster0.pfyiz.mongodb.net/myFirstDatabase?retryWrites=true&w=majority', {
-        useNewUrlParser: true,
-        useUnifiedTopology: true
+mongoose.connect(
+        'mongodb+srv://will:nAcmfCoHGDgzrCHG@cluster0-pme76.mongodb.net/test?retryWrites=true', { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => {
+        console.log('Successfully connected to MongoDB Atlas!');
     })
-    .then(() => console.log('Connexion à MongoDB réussie !'))
-    .catch(() => console.log('Connexion à MongoDB échouée !'));
-
-
+    .catch((error) => {
+        console.log('Unable to connect to MongoDB Atlas!');
+        console.error(error);
+    });
 
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
@@ -26,13 +28,15 @@ app.use((req, res, next) => {
     next();
 });
 
+
+
+
+
+
 app.use(bodyParser.json());
 
-app.use('/api/auth', usersRoutes);
-app.use('/api/sauces', sauceRoutes);
-app.use('/images', express.static(path.join(__dirname, 'images')));
-app.get('/', (req, res) => res.send("HelloWorld!"))
-
-
+app.use('/api/cameras', cameraRoutes);
+app.use('/api/teddies', teddyRoutes);
+app.use('/api/furniture', furnitureRoutes);
 
 module.exports = app;
